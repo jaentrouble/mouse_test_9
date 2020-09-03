@@ -13,22 +13,6 @@ import sys
 from tensorflow.profiler.experimental import Profile
 from datetime import timedelta
 
-ENVIRONMENT = 'CartPole-v1'
-
-env_kwargs = dict(
-)
-
-hp.Learn_start = 1000
-hp.Target_update = 2000
-hp.lr_start = 0.01
-hp.lr_end = 0.001
-hp.lr_nsteps = 500000
-
-
-model_f = am.cartpole_model
-
-evaluate_f = tools.evaluate_common
-
 parser = argparse.ArgumentParser()
 parser.add_argument('-r','--render', dest='render',action='store_true', default=False)
 parser.add_argument('--step', dest='total_steps',default=100000)
@@ -39,6 +23,24 @@ args = parser.parse_args()
 vid_type = 'mp4'
 total_steps = int(args.total_steps)
 my_tqdm = tqdm(total=total_steps, dynamic_ncols=True)
+
+ENVIRONMENT = 'CartPole-v1'
+
+env_kwargs = dict(
+)
+
+model_f = am.cartpole_model
+
+evaluate_f = tools.evaluate_common
+
+hp.Learn_start = 1000
+hp.Target_update = 2000
+hp.lr_start = 0.01
+hp.lr_end = 0.001
+hp.lr_nsteps = 500000
+hp.epsilon = 1
+hp.epsilon_min = 0.1
+hp.epsilon_nstep = total_steps//2
 
 if args.render :
     from gym.envs.classic_control.rendering import SimpleImageViewer
