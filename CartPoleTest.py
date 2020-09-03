@@ -34,7 +34,7 @@ model_f = am.cartpole_model
 evaluate_f = tools.evaluate_common
 
 hp.Learn_start = 1000
-hp.Target_update = 2000
+hp.Target_update = 10000
 hp.lr_start = 0.01
 hp.lr_end = 0.001
 hp.lr_nsteps = 500000
