@@ -110,28 +110,6 @@ class Player():
             self.save_dir, self.save_count = path.split(m_dir)
             self.save_count = int(self.save_count)
 
-    def eye_model(self, input_shape, left_or_right):
-        """
-        Return an eye model
-        """
-        inputs = layers.Input(input_shape)
-        x = layers.Reshape((inputs.shape[1],
-                            inputs.shape[2]*inputs.shape[3]))(inputs)
-        x = layers.Conv1D(64, 7, strides=1, activation='relu')(x)
-        x = layers.Conv1D(128, 5, strides=2, activation='relu')(x)
-        x = layers.Conv1D(192, 3, strides=2, activation='relu')(x)
-        outputs = layers.Conv1D(256, 3, strides=2, activation='relu')(x)
-        return keras.Model(inputs=inputs, outputs=outputs, 
-                    name=left_or_right+'_eye')
-
-    def brain_layers(self, x):
-        x = layers.Flatten()(x)
-        x = layers.Dense(256, activation='relu')(x)
-        x = layers.Dense(128, activation='relu')(x)
-        x = layers.Dense(64, activation='relu')(x)
-        outputs = layers.Dense(self.action_n)(x)
-        return outputs
-
     def _lr(self):
         if self.total_steps > hp.lr_nsteps:
             return hp.lr_end
