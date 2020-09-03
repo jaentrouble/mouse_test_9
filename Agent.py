@@ -121,7 +121,7 @@ class Player():
             return hp.lr_end
         else:
              return hp.lr_start*\
-                 ((hp.lr_start/hp.lr_end)**(self.total_steps/hp.lr_nsteps))
+                 ((hp.lr_end/hp.lr_start)**(self.total_steps/hp.lr_nsteps))
 
     @property
     def epsilon(self):
