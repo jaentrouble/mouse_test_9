@@ -206,6 +206,7 @@ class Player():
         # if info['ate_apple']:
         #     self.score += 1
         self.cumreward += reward
+        tf.summary.scalar('lr', self._lr,self.total_steps)
         if done:
             # tf.summary.scalar('Score', self.score, self.rounds)
             tf.summary.scalar('Reward', self.cumreward, self.rounds)
