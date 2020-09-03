@@ -177,9 +177,12 @@ class Player():
         target_q = self.t_model(sp_batch, training=False)
         # next Q values to select action (Double DQN)
         another_q = self.model(sp_batch, training=False)
+        idx = tf.math.argmax(another_q, axis=-1)
+        selected_q = tf.gather(target_q, idx, batch_dims=1)
+
         q_samp = r + tf.cast(tm.logical_not(d), tf.float32) * \
                      hp.Q_discount * \
-                     tm.reduce_max(another_q, axis=1)
+                     selected_q
         mask = tf.one_hot(a, self.action_n, dtype=tf.float32)
         with tf.GradientTape() as tape:
             q = self.model(o, training=True)
