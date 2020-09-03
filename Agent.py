@@ -22,6 +22,12 @@ keras.backend.clear_session()
 
 class Player():
     """A agent class which plays the game and learn.
+
+    Algorithms
+    ----------
+    e-greedy
+    Prioritized sampling
+    Double DQN
     """
     def __init__(self, observation_space, action_space, model_f, tqdm, m_dir=None,
                  log_name=None, start_step=0, start_round=0,load_buffer=False):
@@ -167,10 +173,13 @@ class Player():
 
     @tf.function
     def train_step(self, o, r, d, a, sp_batch, total_step, weights):
+        # next Q values to evaluate
         target_q = self.t_model(sp_batch, training=False)
+        # next Q values to select action (Double DQN)
+        another_q = self.model(sp_batch, training=False)
         q_samp = r + tf.cast(tm.logical_not(d), tf.float32) * \
                      hp.Q_discount * \
-                     tm.reduce_max(target_q, axis=1)
+                     tm.reduce_max(another_q, axis=1)
         mask = tf.one_hot(a, self.action_n, dtype=tf.float32)
         with tf.GradientTape() as tape:
             q = self.model(o, training=True)
