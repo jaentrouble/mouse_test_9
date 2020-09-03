@@ -70,7 +70,13 @@ class Player():
         if m_dir is None :
             self.model = model_f(observation_space, action_space)
             # compile models
-            optimizer = keras.optimizers.Adam(learning_rate=self._lr)
+            # optimizer = keras.optimizers.Adam(learning_rate=self._lr)
+            lr = keras.optimizers.schedules.ExponentialDecay(
+                initial_learning_rate=0.01,
+                decay_steps=1000,
+                decay_rate=0.95
+            )
+            optimizer = keras.optimizers.Adam(learning_rate=lr)
             self.model.compile(optimizer=optimizer)
         else:
             self.model = keras.models.load_model(m_dir)
