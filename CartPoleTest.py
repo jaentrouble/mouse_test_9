@@ -38,7 +38,7 @@ hp.Target_update = 2000
 hp.lr_start = 0.01
 hp.lr_end = 0.001
 hp.lr_nsteps = 500000
-hp.epsilon = 0.1
+hp.epsilon = 1
 hp.epsilon_min = 0.01
 hp.epsilon_nstep = total_steps//2
 
