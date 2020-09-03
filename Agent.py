@@ -70,13 +70,7 @@ class Player():
         if m_dir is None :
             self.model = model_f(observation_space, action_space)
             # compile models
-            # optimizer = keras.optimizers.Adam(learning_rate=self._lr)
-            lr = keras.optimizers.schedules.ExponentialDecay(
-                initial_learning_rate=0.01,
-                decay_steps=1000,
-                decay_rate=0.95
-            )
-            optimizer = keras.optimizers.Adam(learning_rate=lr)
+            optimizer = keras.optimizers.Adam(learning_rate=self._lr)
             self.model.compile(optimizer=optimizer)
         else:
             self.model = keras.models.load_model(m_dir)
@@ -123,12 +117,12 @@ class Player():
             self.save_count = int(self.save_count)
 
     def _lr(self):
-        if self.total_steps > hp.lr_nsteps:
-            return hp.lr_end
-        else:
-             return hp.lr_start*\
-                 ((hp.lr_end/hp.lr_start)**(self.total_steps/hp.lr_nsteps))
-
+        # if self.total_steps > hp.lr_nsteps:
+        #     return hp.lr_end
+        # else:
+        #      return hp.lr_start*\
+        #          ((hp.lr_end/hp.lr_start)**(self.total_steps/hp.lr_nsteps))
+        return 0.01 * (0.95**(self.total_steps/1000))
     @property
     def epsilon(self):
         if self.total_steps > hp.epsilon_nstep :
