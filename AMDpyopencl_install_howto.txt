@@ -1,0 +1,9 @@
+https://stackoverflow.com/questions/28568845/pyopencl-fatal-error-cl-cl-h-no-such-file-or-directory-error-during-installa
+https://stackoverflow.com/questions/42881165/fatal-error-c1083-cannot-open-include-file-cl-cl-h
+https://github.com/diku-dk/futhark/issues/731  -> For linux rocm
+
+IMPORTANT: Delete all 'CL/' wherever it says cannot open 'CL/(something)'
+
+(pyopencl directory) python setup.py install
+
+https://github.com/RadeonOpenCompute/ROCm/issues/1165 -> segmentation fault problem
