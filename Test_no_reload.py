@@ -132,6 +132,10 @@ else :
         if args.render :
             env.render()
 
+player.save_model()
+score = evaluate_f(player, gym.make(ENVIRONMENT, **env_kwargs), 
+                    vid_type)
+print('eval_score:{0}'.format(score))
 d = timedelta(seconds=time.time() - st)
 print(f'{total_steps}steps took {d}')
 my_tqdm.close()

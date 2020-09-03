@@ -55,7 +55,7 @@ def mouse_eye_brain_model(observation_space, action_space):
 
 def cartpole_model(observation_space, action_space):
     inputs = keras.Input(observation_space['obs'].shape, name='obs')
-    x = layers.Flatten()(x)
+    x = layers.Flatten()(inputs)
     x = layers.Dense(512, activation='relu')(x)
     x = layers.Dense(512, activation='relu')(x)
     x = layers.Dense(512, activation='relu')(x)
