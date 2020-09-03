@@ -4,6 +4,8 @@ import time
 import numpy as np
 from Agent import Player
 import agent_assets.A_hparameters as hp
+import agent_assets.agent_models as am
+from agent_assets import tools
 from tqdm import tqdm
 import argparse
 import os
@@ -55,14 +57,33 @@ env = gym.make(ENVIRONMENT, **env_kwargs)
 bef_o = env.reset()
 
 if args.load :
-    player = Player(env.observation_space, env.action_space, my_tqdm,
-                args.load, args.log_name, cur_loop*total_steps, cur_r, load_buffer)
+    player = Player(
+        observation_space= env.observation_space, 
+        action_space= env.action_space, 
+        model_f= model_f,
+        tqdm= my_tqdm,
+        m_dir= args.load, 
+        log_name= args.log_name, 
+        start_step= cur_loop*total_steps, 
+        start_round= cur_r, 
+        load_buffer= load_buffer,
+    )
 elif args.log_name:
     # If log directory is explicitely selected
-    player = Player(env.observation_space, env.action_space, my_tqdm, 
-                log_name=args.log_name)
+    player = Player(
+        observation_space= env.observation_space, 
+        action_space= env.action_space, 
+        model_f= model_f,
+        tqdm= my_tqdm,
+        log_name= args.log_name
+    )
 else :
-    player = Player(env.observation_space, env.action_space, my_tqdm)
+    player = Player(
+        observation_space= env.observation_space,
+        action_space= env.action_space, 
+        model_f= model_f,
+        tqdm= my_tqdm,
+    )
 if args.render :
     env.render()
 
@@ -122,7 +143,7 @@ if not args.load:
 else:
     save_dir, _ = os.path.split(args.load)
 next_dir = os.path.join(save_dir,str(next_save))
-score = player.evaluate(gym.make(ENVIRONMENT, **env_kwargs), vid_type)
+score = evaluate_f(player, gym.make(ENVIRONMENT, **env_kwargs), vid_type)
 print('eval_score:{0}'.format(score))
 print('{0}steps took {1} sec'.format(total_steps,time.time()-st))
 

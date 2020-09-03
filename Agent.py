@@ -21,12 +21,37 @@ for gpu in gpus:
 keras.backend.clear_session()
 
 class Player():
-    def __init__(self, observation_space, action_space, tqdm, m_dir=None,
+    """A agent class which plays the game and learn.
+    """
+    def __init__(self, observation_space, action_space, model_f, tqdm, m_dir=None,
                  log_name=None, start_step=0, start_round=0,load_buffer=False):
         """
-        model : The actual training model
-        t_model : Fixed target model
+        Parameters
+        ----------
+        observation_space : gym.Space
+            Observation space of the environment.
+        action_space : gym.Space
+            Action space of the environment. Current agent expects only
+            a discrete action space.
+        model_f
+            A function to build the Q-model. 
+            It should take obeservation space and action space as inputs.
+            It should not compile the model.
+        tqdm : tqdm.tqdm
+            A tqdm object to update every step.
+        m_dir : str
+            A model directory to load the model if there's a model to load
+        log_name : str
+            A name for log
+        start_step : int
+            Total step starts from start_step
+        start_round : int
+            Total round starts from start_round
+        load_buffer : bool
+            Whether to load the buffer from the model directory
         """
+        # model : The actual training model
+        # t_model : Fixed target model
         print('Model directory : {}'.format(m_dir))
         print('Log name : {}'.format(log_name))
         print('Starting from step {}'.format(start_step))
@@ -37,24 +62,8 @@ class Player():
         self.observation_space = observation_space
         #Inputs
         if m_dir is None :
-            left_input = keras.Input(observation_space['Left'].shape,
-                                    name='Left')
-            right_input = keras.Input(observation_space['Right'].shape,
-                                    name='Right')
-            # Spare eye model for later use
-            left_input_shape = observation_space['Left'].shape
-            right_input_shape = observation_space['Right'].shape
-            left_eye_model = self.eye_model(left_input_shape,'Left')
-            right_eye_model = self.eye_model(right_input_shape,'Right')
-            # Get outputs of the model
-            left_encoded = left_eye_model(left_input)
-            right_encoded = right_eye_model(right_input)
-            # Concatenate both eye's inputs
-            concat = layers.Concatenate()([left_encoded,right_encoded])
-            outputs = self.brain_layers(concat)
-            # Build models
-            self.model = keras.Model(inputs=[left_input, right_input],
-                                outputs=outputs)
+            self.model = model_f(observation_space, action_space)
+            # compile models
             optimizer = keras.optimizers.Adam(learning_rate=self._lr)
             self.model.compile(optimizer=optimizer)
         else:
@@ -144,12 +153,12 @@ class Player():
         Preprocess input data
         """
         processed_obs = {}
-        if len(observation['Right'].shape)==\
-            len(self.observation_space['Right'].shape):
-            for name, obs in observation.items():
+        for name, obs in observation.items():
+            # If only one observation is given, reshape to [1,...]
+            if len(observation[name].shape)==\
+                len(self.observation_space[name].shape):
                 processed_obs[name] = tf.cast(obs[np.newaxis,...],tf.float32)/255
-        else :
-            for name, obs in observation.items():
+            else :
                 processed_obs[name] = tf.cast(obs, tf.float32)/255
         return processed_obs
 
@@ -277,47 +286,47 @@ class Player():
 
         return self.save_count
 
-    def evaluate(self, env, video_type):
-        print('Evaluating...')
-        done = False
-        video_dir = path.join(self.model_dir, 'eval.{}'.format(video_type))
-        eye_dir = path.join(self.model_dir, 'eval_eye.{}'.format(video_type))
-        score_dir = path.join(self.model_dir, 'score.txt')
-        if 'avi' in video_type :
-            fcc = 'DIVX'
-        elif 'mp4' in video_type:
-            fcc = 'mp4v'
-        else:
-            raise TypeError('Wrong videotype')
-        fourcc = cv2.VideoWriter_fourcc(*fcc)
-        # Becareful : cv2 order of image size is (width, height)
-        eye_out = cv2.VideoWriter(eye_dir, fourcc, 10, (205*5,50))
-        out = cv2.VideoWriter(video_dir, fourcc, 10, env.image_size)
-        eye_bar = np.ones((5,3),dtype=np.uint8)*np.array([255,255,0],dtype=np.uint8)
-        o = env.reset()
-        score = 0
-        loop = 0
-        while not done :
-            loop += 1
-            if not loop % 100:
-                print('Eval : {}step passed'.format(loop))
-            a = self.act(o, record=False)
-            o,r,done,i = env.step(a)
-            score += r
-            #eye recording
-            rt_eye = np.flip(o['Right'][:,-1,:],axis=0)
-            lt_eye = o['Left'][:,-1,:]
-            eye_img = np.concatenate((lt_eye,eye_bar,rt_eye))
-            eye_img = np.broadcast_to(eye_img.reshape((1,205,1,3)),(50,205,5,3))
-            eye_img = eye_img.reshape(50,205*5,3)
-            eye_out.write(np.flip(eye_img, axis=-1))
-            # This will turn image 90 degrees, but it does not make any difference,
-            # so keep it this way to save computations
-            out.write(np.flip(env.render('rgb'), axis=-1))
-        out.release()
-        eye_out.release()
-        with open(score_dir, 'w') as f:
-            f.write(str(score))
-        print('Eval finished')
-        return score
+    # def evaluate(self, env, video_type):
+    #     print('Evaluating...')
+    #     done = False
+    #     video_dir = path.join(self.model_dir, 'eval.{}'.format(video_type))
+    #     eye_dir = path.join(self.model_dir, 'eval_eye.{}'.format(video_type))
+    #     score_dir = path.join(self.model_dir, 'score.txt')
+    #     if 'avi' in video_type :
+    #         fcc = 'DIVX'
+    #     elif 'mp4' in video_type:
+    #         fcc = 'mp4v'
+    #     else:
+    #         raise TypeError('Wrong videotype')
+    #     fourcc = cv2.VideoWriter_fourcc(*fcc)
+    #     # Becareful : cv2 order of image size is (width, height)
+    #     eye_out = cv2.VideoWriter(eye_dir, fourcc, 10, (205*5,50))
+    #     out = cv2.VideoWriter(video_dir, fourcc, 10, env.image_size)
+    #     eye_bar = np.ones((5,3),dtype=np.uint8)*np.array([255,255,0],dtype=np.uint8)
+    #     o = env.reset()
+    #     score = 0
+    #     loop = 0
+    #     while not done :
+    #         loop += 1
+    #         if not loop % 100:
+    #             print('Eval : {}step passed'.format(loop))
+    #         a = self.act(o, record=False)
+    #         o,r,done,i = env.step(a)
+    #         score += r
+    #         #eye recording
+    #         rt_eye = np.flip(o['Right'][:,-1,:],axis=0)
+    #         lt_eye = o['Left'][:,-1,:]
+    #         eye_img = np.concatenate((lt_eye,eye_bar,rt_eye))
+    #         eye_img = np.broadcast_to(eye_img.reshape((1,205,1,3)),(50,205,5,3))
+    #         eye_img = eye_img.reshape(50,205*5,3)
+    #         eye_out.write(np.flip(eye_img, axis=-1))
+    #         # This will turn image 90 degrees, but it does not make any difference,
+    #         # so keep it this way to save computations
+    #         out.write(np.flip(env.render('rgb'), axis=-1))
+    #     out.release()
+    #     eye_out.release()
+    #     with open(score_dir, 'w') as f:
+    #         f.write(str(score))
+    #     print('Eval finished')
+    #     return score
 

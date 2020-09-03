@@ -1,28 +1,26 @@
-from sanity_env import EnvTest
 import gym
 import gym_mouse
+import time
 import numpy as np
+from Agent import Player
+import agent_assets.agent_models as am
+from agent_assets import tools
 import agent_assets.A_hparameters as hp
 from tqdm import tqdm
 import argparse
 import os
 import sys
-import tensorflow as tf
-parser = argparse.ArgumentParser()
-parser.add_argument('-pf', dest='profile', action='store_true', default=False)
-parser.add_argument('-sa', dest='sanity_agent', action='store_true',default=False)
-parser.add_argument('--steps', dest='steps')
-parser.add_argument('--logname', dest='log_name', default=None)
-args = parser.parse_args()
+from tensorflow.profiler.experimental import Profile
+from datetime import timedelta
+from sanity_env import EnvTest
 
-total_steps = int(args.steps)
+ENVIRONMENT = 'mouseCl-v2'
 
-my_tqdm = tqdm(total=total_steps, dynamic_ncols=True)
-
-if args.sanity_agent :
-    from sanityagent import Player
-else :
-    from Agent import Player
+env_kwargs = dict(
+    apple_num=10,
+    eat_apple = 1.0,
+    hit_wall = 0,
+)
 
 hp.Buffer_size = 500
 hp.Learn_start = 200
@@ -32,67 +30,111 @@ hp.epsilon = 1
 hp.epsilon_min = 0.01
 hp.epsilon_nstep = 500
 
-original_env = gym.make('mouseCl-v1')
-test_env = EnvTest(original_env.observation_space)
-player = Player(original_env.observation_space, test_env.action_space, my_tqdm,
-                log_name=args.log_name)
-bef_o = test_env.reset()
-# for step in trange(1000) :
-#     player.act(o,training=True)
-#     if step%5 == 0 :
-#         action = 2
-#     elif step%5 == 1 :
-#         action = 1
-#     elif step%5 == 2 :
-#         action = 2
-#     elif step%5 == 3 :
-#         action = 1
-#     elif step%5 == 4 :
-#         action = 0
-#     o, r, d, i = test_env.step(action)
-#     player.step(action, r,d,i)
-#     if d :
-#         o = test_env.reset()
+model_f = am.mouse_eye_brain_model
+
+evaluate_f = tools.evaluate_mouse
+
+parser = argparse.ArgumentParser()
+parser.add_argument('-r','--render', dest='render',action='store_true', default=False)
+parser.add_argument('--step', dest='total_steps',default=100000)
+parser.add_argument('-n','--logname', dest='log_name',default=False)
+parser.add_argument('-pf', dest='profile',action='store_true',default=False)
+args = parser.parse_args()
+
+vid_type = 'mp4'
+total_steps = int(args.total_steps)
+my_tqdm = tqdm(total=total_steps, dynamic_ncols=True)
+
+if args.render :
+    from gym.envs.classic_control.rendering import SimpleImageViewer
+    eye_viewer = SimpleImageViewer(maxwidth=1500)
+    bar = np.ones((5,3),dtype=np.uint8)*np.array([255,255,0],dtype=np.uint8)
+# For benchmark
+st = time.time()
+
+original_env = gym.make(ENVIRONMENT, **env_kwargs)
+env = EnvTest(original_env.observation_space)
+
+bef_o = env.reset()
+
+if args.log_name:
+    # If log directory is explicitely selected
+    player = Player(
+        observation_space= env.observation_space, 
+        action_space= env.action_space, 
+        model_f= model_f,
+        tqdm= my_tqdm,
+        log_name= args.log_name
+    )
+else :
+    player = Player(
+        observation_space= env.observation_space,
+        action_space= env.action_space, 
+        model_f= model_f,
+        tqdm= my_tqdm,
+    )
+if args.render :
+    env.render()
+
 if args.profile:
-    for step in range(hp.Learn_start+50):
+    # Warm up
+    for step in range(hp.Learn_start+20):
         action = player.act(bef_o)
-        aft_o, r, d, i = test_env.step(action)
+        aft_o,r,d,i = env.step(action)
         player.step(bef_o,action,r,d,i)
         if d :
-            bef_o = test_env.reset()
-        else :
+            bef_o = env.reset()
+        else:
             bef_o = aft_o
-    with tf.profiler.experimental.Profile('log/profile'):
+        if args.render :
+            env.render()
+
+    with Profile(f'log/{args.log_name}'):
         for step in range(5):
             action = player.act(bef_o)
-            aft_o, r, d, i = test_env.step(action)
+            aft_o,r,d,i = env.step(action)
             player.step(bef_o,action,r,d,i)
             if d :
-                bef_o = test_env.reset()
-            else :
+                bef_o = env.reset()
+            else:
                 bef_o = aft_o
+            if args.render :
+                env.render()
+    remaining_steps = total_steps - hp.Learn_start - 25
+    for step in range(remaining_steps):
+        if ((hp.Learn_start + 25 + step) % hp.Model_save) == 0 :
+            player.save_model()
+            score = evaluate_f(player, gym.make(ENVIRONMENT, **env_kwargs), 
+                                vid_type)
+            print('eval_score:{0}'.format(score))
+        action = player.act(bef_o)
+        aft_o,r,d,i = env.step(action)
+        player.step(bef_o,action,r,d,i)
+        if d :
+            bef_o = env.reset()
+        else:
+            bef_o = aft_o
+        if args.render :
+            env.render()
 
 else :
-    for step in range(int(args.steps)):
+    for step in range(total_steps):
+        if (step>0) and ((step % hp.Model_save) == 0) :
+            player.save_model()
+            score = evaluate_f(player, gym.make(ENVIRONMENT, **env_kwargs), 
+                                vid_type)
+            print('eval_score:{0}'.format(score))
         action = player.act(bef_o)
-        aft_o, r, d, i = test_env.step(action)
-        player.step(bef_o, action,r,d,i)
+        aft_o,r,d,i = env.step(action)
+        player.step(bef_o,action,r,d,i)
         if d :
-            bef_o = test_env.reset()
-        else :
+            bef_o = env.reset()
+        else:
             bef_o = aft_o
-        # if step % 1000 == 0 :
-        #     print('Evaluating')
-        #     vo = test_env.reset()
-        #     rewards = 0
-        #     for _ in trange(50):
-        #         vaction = player.act(vo, training=False)
-        #         print(vaction)
-        #         vo, vr, vd, vi = test_env.step(vaction)
-        #         print(vr)
-        #         rewards += vr
-        #         if vd :
-        #             vo = test_env.reset()
-        #     print(rewards/10)
-        #     input('continue?')
+        if args.render :
+            env.render()
+
+d = timedelta(seconds=time.time() - st)
+print(f'{total_steps}steps took {d}')
 my_tqdm.close()
+

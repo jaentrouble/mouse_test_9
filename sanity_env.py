@@ -30,14 +30,15 @@ class EnvTest(object):
         self.num_iters = 0
         self.was_in_second = False
         self.action_space = ActionSpace(5)
-        self.observation_space = ObservationSpace(observation_space)
+        self.observations = ObservationSpace(observation_space)
+        self.observation_space = observation_space
         
 
     def reset(self):
         self.cur_state = 0
         self.num_iters = 0
         self.was_in_second = False
-        return self.observation_space.states[self.cur_state]
+        return self.observations.states[self.cur_state]
         
 
     def step(self, action):
@@ -52,7 +53,7 @@ class EnvTest(object):
             self.was_in_second = True
         else:
             self.was_in_second = False
-        return self.observation_space.states[self.cur_state], reward, self.num_iters >= 5, {'ate_apple':0}
+        return self.observations.states[self.cur_state], reward, self.num_iters >= 5, {'ate_apple':0}
 
 
     def render(self):
