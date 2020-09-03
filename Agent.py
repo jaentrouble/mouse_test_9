@@ -117,12 +117,12 @@ class Player():
             self.save_count = int(self.save_count)
 
     def _lr(self):
-        # if self.total_steps > hp.lr_nsteps:
-        #     return hp.lr_end
-        # else:
-        #      return hp.lr_start*\
-        #          ((hp.lr_end/hp.lr_start)**(self.total_steps/hp.lr_nsteps))
-        return 0.01 * (0.95**(self.total_steps/1000))
+        if self.total_steps > hp.lr_nsteps:
+            return hp.lr_end
+        else:
+             return hp.lr_start*\
+                 ((hp.lr_end/hp.lr_start)**(self.total_steps/hp.lr_nsteps))
+
     @property
     def epsilon(self):
         if self.total_steps > hp.epsilon_nstep :
