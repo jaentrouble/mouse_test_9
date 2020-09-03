@@ -26,6 +26,10 @@
 
 ## Other changes
 
+1. Changed some code so that the Player class is more generally usable.
+
+2. Now both CartPoleTest and SanityCheck uses the same Player class from Agent.
+
 ## Tests
 
 ## Discussion
