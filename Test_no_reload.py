@@ -21,15 +21,6 @@ env_kwargs = dict(
     hit_wall = 0,
 )
 
-hp.epsilon = 1
-hp.epsilon_min = 0.1
-hp.epsilon_nstep = 1500000
-
-hp.Model_save = 200000
-
-hp.lr_start = 0.01
-hp.lr_end = 0.0005
-
 model_f = am.mouse_eye_brain_model
 
 evaluate_f = tools.evaluate_mouse
@@ -44,6 +35,18 @@ args = parser.parse_args()
 vid_type = 'mp4'
 total_steps = int(args.total_steps)
 my_tqdm = tqdm(total=total_steps, dynamic_ncols=True)
+
+
+hp.epsilon = 1
+hp.epsilon_min = 0.1
+hp.epsilon_nstep = total_steps//2
+
+hp.Model_save = 200000
+
+hp.lr_start = 1e-5
+hp.lr_end = 1e-10
+hp.lr_nsteps = 1000000
+
 
 if args.render :
     from gym.envs.classic_control.rendering import SimpleImageViewer
